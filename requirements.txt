@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 paho-mqtt==1.6.1
+=======
+paho-mqtt==1.6.1
+>>>>>>> a4ed150c4d002fb8fae3c641932b286df461a026
