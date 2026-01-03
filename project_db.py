@@ -97,19 +97,20 @@ def show_appointments(doc_id, only_free=True):
     try:
         with db_connection() as cursor:
             # Χρειαζόμαστε και το apno (το ID του ραντεβού) για να το κλείσουμε μετά
+            today = datetime.now().strftime("%Y-%m-%d")
             query = """
                 SELECT a.apdate, a.aptime, a.availability, a.apno
                 FROM DOCTOR 
                 JOIN DECLARES USING(docid) 
                 JOIN APPOINTMENT a USING (apno) 
-                WHERE docid = ? 
+                WHERE docid = ? AND a.apdate >= ?
             """
             if only_free:
                 query += " AND a.availability = 1"
             
             query += " ORDER BY apdate, aptime"
             
-            cursor.execute(query, (doc_id,))
+            cursor.execute(query, (doc_id, today))
             return cursor.fetchall()
     except sqlite3.Error as e:
         print(f"Error fetching appointments: {e}")
