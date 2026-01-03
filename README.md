@@ -28,10 +28,32 @@ A **desktop medical appointment management system** built with **Python, Tkinter
 ### Installation
 1. Open command prompt(cmd)
 
-1. Clone the repository:
-```bash```
-git clone https://github.com/USERNAME/REPO_NAME.git
-cd REPO_NAME
+2. Clone the repository:
+
+git clone https://github.com/GiakoubM/clinic-appointments.git \
+cd clinic_appointments\
+3. Create a virtual environment (recommended)\
+python -m venv .venv
+
+4. Activate the virtual environment
+
+Windows:
+
+.venv\Scripts\activate
+
+
+Linux / Mac:
+
+source .venv/bin/activate 
+
+5.Install requirements\
+pip install -r requirements.txt
+
+6. Create the database\
+   python create_database.py
+
+7.Run the application\
+python connect_window.py
 
 
 ## Screenshots
@@ -56,6 +78,7 @@ cd REPO_NAME
 ![Patient Window](screenshots/patinet_book_appointment.png)
 ### Patient Cancel Appointment Window
 ![Patient Window](screenshots/patient_cancel_appointment.png)
+
 
 
 
