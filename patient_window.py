@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from project_db import get_specialties, show_doctors, show_appointments, book_appointment, show_patient_appointments, cancel_appointment
+import paho.mqtt.client as mqtt
 
 class PatientWindow:
     def __init__(self, root, patient_id):
@@ -176,6 +177,16 @@ class PatientWindow:
         if success:
             messagebox.showinfo("Επιτυχία", "Το ραντεβού έκλεισε επιτυχώς!")
             self.lbl_status.config(text="Το ραντεβού κατοχυρώθηκε!", foreground="green")
+            
+            # --- MQTT: Notify Doctor ---
+            try:
+                client = mqtt.Client()
+                client.connect("broker.emqx.io", 1883, 60)
+                client.publish(f"clinic/doctor/{doc_id}/refresh", "new_appointment")
+                client.disconnect()
+            except Exception as e:
+                print(f"MQTT Publish Error: {e}")
+
             # Ανανέωση της λίστας (αφού το ραντεβού δεν είναι πια διαθέσιμο)
             self.on_doctor_select(None)
         else:
@@ -186,12 +197,13 @@ class PatientWindow:
         ttk.Label(self.tab_my_apps, text="Τα Ραντεβού μου", font=("Verdana", 16, "bold")).pack(pady=20)
 
         # Treeview
-        columns = ("Date", "Time", "Doctor", "ID")
+        columns = ("Date", "Time", "Doctor", "ID", "DocID")
         self.tree_apps = ttk.Treeview(self.tab_my_apps, columns=columns, show='headings', height=10)
         self.tree_apps.heading("Date", text="Ημερομηνία")
         self.tree_apps.heading("Time", text="Ώρα")
         self.tree_apps.heading("Doctor", text="Γιατρός")
         self.tree_apps.column("ID", width=0, stretch=False) # Κρύβουμε το ID
+        self.tree_apps.column("DocID", width=0, stretch=False) # Κρύβουμε το DocID
         self.tree_apps.pack(fill='both', expand=True, padx=10, pady=5)
 
         btn_cancel = ttk.Button(self.tab_my_apps, text="Ακύρωση Επιλεγμένου", command=self.cancel_selected)
@@ -204,9 +216,9 @@ class PatientWindow:
         
         apps = show_patient_appointments(self.patient_id)
         for app in apps:
-            # app: (date, time, fname, lname, apno)
+            # app: (date, time, fname, lname, apno, docid)
             doc_name = f"{app[2]} {app[3]}"
-            self.tree_apps.insert("", "end", values=(app[0], app[1], doc_name, app[4]))
+            self.tree_apps.insert("", "end", values=(app[0], app[1], doc_name, app[4], app[5]))
 
     def cancel_selected(self):
         selected = self.tree_apps.selection()
@@ -216,10 +228,21 @@ class PatientWindow:
         
         item = self.tree_apps.item(selected)
         apno = item['values'][3] # Το ID είναι στην 4η στήλη
+        doc_id = item['values'][4]
 
         if messagebox.askyesno("Επιβεβαίωση", "Είστε σίγουροι ότι θέλετε να ακυρώσετε το ραντεβού;"):
             if cancel_appointment(apno):
                 messagebox.showinfo("Επιτυχία", "Το ραντεβού ακυρώθηκε.")
+                
+                # --- MQTT: Notify Doctor ---
+                try:
+                    client = mqtt.Client()
+                    client.connect("broker.emqx.io", 1883, 60)
+                    client.publish(f"clinic/doctor/{doc_id}/refresh", "cancel_appointment")
+                    client.disconnect()
+                except Exception as e:
+                    print(f"MQTT Publish Error: {e}")
+
                 self.refresh_my_appointments()
 
     def on_tab_change(self, event):

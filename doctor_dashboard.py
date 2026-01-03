@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from project_db import set_doctor_schedule, show_appointments, show_patient, add_bill, show_doctor_booked_appointments
+import paho.mqtt.client as mqtt
 
 def create_doctor_dashboard(container, home_frame, current_user_id_var):
     frame = ttk.Frame(container)
@@ -215,5 +216,40 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
 
     ttk.Button(app_frame, text="Refresh Appointments", command=refresh_appointments).pack(pady=5)
     ttk.Button(frame, text="Logout", command=lambda: home_frame.tkraise()).pack(pady=10)
+
+    # --- MQTT Listener Setup ---
+    def start_mqtt():
+        doc_id = current_user_id_var.get()
+        broker = "broker.emqx.io"
+        topic = f"clinic/doctor/{doc_id}/refresh"
+
+        def on_connect(client, userdata, flags, rc):
+            if rc == 0:
+                client.subscribe(topic)
+                print(f"MQTT: Connected and subscribed to {topic}")
+
+        def on_message(client, userdata, msg):
+            # Use after() to schedule the UI update on the main Tkinter thread
+            frame.after(0, refresh_appointments)
+
+        client = mqtt.Client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        
+        try:
+            client.connect(broker, 1883, 60)
+            client.loop_start()
+            
+            # Bind cleanup to frame destruction to stop the loop when logging out/closing
+            def cleanup(event):
+                client.loop_stop()
+                client.disconnect()
+            frame.bind("<Destroy>", cleanup)
+            
+        except Exception as e:
+            print(f"MQTT Connection Error: {e}")
+
+    # Start the listener
+    start_mqtt()
 
     return frame

@@ -212,7 +212,7 @@ def show_patient_appointments(pat_id):
         with db_connection() as cursor:
             # Συνδέουμε MAKES -> APPOINTMENT -> DECLARES -> USER (για όνομα γιατρού)
             query = """
-                SELECT a.apdate, a.aptime, u.firstname, u.lastname, a.apno
+                SELECT a.apdate, a.aptime, u.firstname, u.lastname, a.apno, m.docid
                 FROM MAKES m
                 JOIN APPOINTMENT a ON m.apno = a.apno
                 JOIN USER u ON m.docid = u.id
