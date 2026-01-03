@@ -2,6 +2,8 @@
 
 A **desktop medical appointment management system** built with **Python, Tkinter, SQLite**, featuring **real-time updates** using **MQTT**.
 
+
+
 ---
 
 ## Features
@@ -16,7 +18,7 @@ A **desktop medical appointment management system** built with **Python, Tkinter
 ### Patient
 - View available appointments
 - Book appointments
-- View personal appointments & payment status
+- View personal appointments 
 
 ---
 
@@ -42,6 +44,7 @@ A **desktop medical appointment management system** built with **Python, Tkinter
 ![Patient Window](screenshots/patinet_book_appointment.png)
 ### Patient Cancel Appointment Window
 ![Patient Window](screenshots/patient_cancel_appointment.png)
+
 
 
 
