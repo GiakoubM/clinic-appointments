@@ -6,7 +6,7 @@ from doctor_dashboard import create_doctor_dashboard
 
 def handle_patient_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, signup_btn, back_btn):
     login_title_var.set("Patient Login")
-    login_prompt_var.set("Εισάγετε το ΑΜΚΑ σας:")
+    login_prompt_var.set("Enter your AMKA number:")
     signup_title_var.set("New Patient Registration")
     id_label_var.set("ΑΜΚΑ")
     signup_btn.pack(pady=5, before=back_btn)
@@ -14,7 +14,7 @@ def handle_patient_click(login_title_var, login_prompt_var, signup_title_var, id
 
 def handle_doctor_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, signup_btn):
     login_title_var.set("Doctor Login")
-    login_prompt_var.set("Εισάγετε το ID σας:")
+    login_prompt_var.set("Enter your doctor ID number:")
     signup_title_var.set("New Doctor Registration")
     id_label_var.set("ID")
     signup_btn.pack_forget()
@@ -23,14 +23,13 @@ def handle_doctor_click(login_title_var, login_prompt_var, signup_title_var, id_
 def attempt_login(entry_id, lbl_message, login_title_var, current_user_id_var, event=None):
     user_id = entry_id.get()
     
-    # Determine role based on the login screen title
+    # Για να γνωρίζουμε ποιος χρησιμοποιεί την εφαρμογή
     role = 'doctor' if "Doctor" in login_title_var.get() else 'patient'
     
     if verify_user(user_id, role):
         lbl_message.config(text="Login Successful!", foreground="green")
         current_user_id_var.set(user_id)
         
-        # Check if we are in Doctor Login mode
         if "Doctor" in login_title_var.get():
             root = entry_id.winfo_toplevel()
             root.withdraw()
@@ -51,11 +50,10 @@ def attempt_login(entry_id, lbl_message, login_title_var, current_user_id_var, e
             dashboard = create_doctor_dashboard(new_window, LogoutHandler(), current_user_id_var)
             dashboard.pack(fill="both", expand=True)
         else:
-            # Patient Login Logic
+            
             new_window = tk.Toplevel() 
             app = PatientWindow(new_window, user_id)
             
-            # Hide the main login window and restore it when the patient window closes
             root = entry_id.winfo_toplevel()
             root.withdraw()
             def on_close():
@@ -73,36 +71,48 @@ def back_to_home(home_frame):
 
 def submit_signup(entries, lbl_res):
     for key, entry in entries.items():
-        val = entry.get().strip()
-        # Check if Phone is still the placeholder
-        if key == "Phone" and val == "+30690000000":
-            lbl_res.config(text="Please enter a valid phone number", foreground="red")
-            return
+        val = entry.get().strip()  
         
-        # Check for default values in date dropdowns
         if key in ["Birth_Day", "Birth_Month", "Birth_Year"] and val in ["Day", "Month", "Year"]:
             lbl_res.config(text="Please select a valid Birth Date", foreground="red")
             return
 
-        # Check for empty fields (Allergies can be optional if desired, but here we enforce all)
-        if not val:
+        # Έλεγχος για άδεια πεδία, οι αλλεργίες είναι προεραιτικές
+        if key != "Allergies" and not val:
             lbl_res.config(text="All fields are required", foreground="red")
             return
 
-    # Construct Birth Date
+    # Σφαλματα αν ο χρηστης βάλει λάθος δεδομένα
+    if len(entries["ID_FIELD"].get().strip()) != 10:
+        lbl_res.config(text="AMKA must be 10 characters", foreground="red")
+        return
+    
+    if len(entries["Phone"].get().strip()) != 13:
+        lbl_res.config(text="Phone number must be 13 characters", foreground="red")
+        return
+
+    if len(entries["Sex"].get().strip()) != 1:
+        lbl_res.config(text="Sex must be 1 character", foreground="red")
+        return
+    
+    if entries["Sex"].get().strip() != "M" and entries["Sex"].get().strip() != "F":
+        lbl_res.config(text="Sex must be either 'M' or 'F'", foreground="red")
+        return
+
+    # Σχηματισμός ημέρας γέννησης
     day = entries["Birth_Day"].get()
     month = entries["Birth_Month"].get()
     year = entries["Birth_Year"].get()
     birth_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
-    if sing_up_user(entries["ID_FIELD"].get(), entries["Phone"].get(), entries["Address"].get(),
+    success, message = sing_up_user(entries["ID_FIELD"].get(), entries["Phone"].get(), entries["Address"].get(),
                     entries["First Name"].get(), entries["Last Name"].get(), entries["Email"].get(),
-                    "", # City (Placeholder as per current form fields)
-                    birth_date, entries["Sex"].get(), entries["Allergies"].get()):
-        lbl_res.config(text="Registered Successfully!", foreground="green")
+                    birth_date, entries["Sex"].get(), entries["Allergies"].get())
+    if success:
+        lbl_res.config(text=message, foreground="green")
     else:
-        lbl_res.config(text="Registration Failed (ID might exist)", foreground="red")
+        lbl_res.config(text=message, foreground="red")
 
 def back_to_login(lbl_res, login_frame):
-    lbl_res.config(text="") # Clear any previous messages
+    lbl_res.config(text="") 
     login_frame.tkraise()

@@ -4,12 +4,13 @@ from tkinter import messagebox
 from project_db import get_specialties, show_doctors, show_appointments, book_appointment, show_patient_appointments, cancel_appointment
 import paho.mqtt.client as mqtt
 
+
 class PatientWindow:
     def __init__(self, root, patient_id):
         self.root = root
         self.patient_id = patient_id
-        self.root.title(f"Πίνακας Ασθενή - AMKA: {patient_id}")
-        self.root.geometry("600x500")
+        self.root.title(f"AMKA: {patient_id}")
+        self.root.geometry("800x600")
         self.root.configure(bg="#E6F2FF")
 
         # Δημιουργία Tabs (Notebook)
@@ -18,11 +19,11 @@ class PatientWindow:
 
         # Tab 1: Κλείσιμο Ραντεβού
         self.tab_book = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_book, text='Κλείσιμο Ραντεβού')
+        self.notebook.add(self.tab_book, text='Book an Appointment')
 
         # Tab 2: Τα Ραντεβού μου
         self.tab_my_apps = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_my_apps, text='Τα Ραντεβού μου')
+        self.notebook.add(self.tab_my_apps, text='My Appointments')
 
         self.setup_booking_tab()
         self.setup_my_appointments_tab()
@@ -33,10 +34,10 @@ class PatientWindow:
     def setup_booking_tab(self):
         # Κεντρικός τίτλος
         # Χρησιμοποιούμε self.tab_book αντί για self.root
-        ttk.Label(self.tab_book, text="Κλείσιμο Ραντεβού", font=("Verdana", 16, "bold")).pack(pady=20)
+        ttk.Label(self.tab_book, text="Book an Appointment", font=("Verdana", 16, "bold")).pack(pady=20)
 
         # --- Επιλογή Ειδικότητας ---
-        ttk.Label(self.tab_book, text="1. Επιλέξτε Ειδικότητα:").pack(pady=5)
+        ttk.Label(self.tab_book, text="1. Select Specialty:").pack(pady=5)
         self.cb_specialty = ttk.Combobox(self.tab_book, state="readonly", width=40)
         self.cb_specialty.pack(pady=5)
         
@@ -45,8 +46,8 @@ class PatientWindow:
         self.cb_specialty['values'] = specialties
         self.cb_specialty.bind("<<ComboboxSelected>>", self.on_specialty_select)
 
-        # --- Επιλογή Γιατρού ---
-        ttk.Label(self.tab_book, text="2. Επιλέξτε Γιατρό:").pack(pady=5)
+        #Επιλογή Γιατρού
+        ttk.Label(self.tab_book, text="2. Select Doctor:").pack(pady=5)
         self.cb_doctor = ttk.Combobox(self.tab_book, state="readonly", width=40)
         self.cb_doctor.pack(pady=5)
         self.cb_doctor.bind("<<ComboboxSelected>>", self.on_doctor_select)
@@ -54,8 +55,8 @@ class PatientWindow:
         # Λίστα για να κρατάμε τα IDs των γιατρών που φορτώνονται
         self.loaded_doctors = [] 
 
-        # --- Επιλογή Ραντεβού (Ημερομηνία & Ώρα) ---
-        ttk.Label(self.tab_book, text="3. Επιλέξτε Ημερομηνία και Ώρα:").pack(pady=5)
+        # Επιλογή Ραντεβού (Ημερομηνία & Ώρα) 
+        ttk.Label(self.tab_book, text="3. Select Date and Time:").pack(pady=5)
         
         self.frame_datetime = ttk.Frame(self.tab_book)
         self.frame_datetime.pack(pady=5)
@@ -70,13 +71,13 @@ class PatientWindow:
         # Λίστα για να κρατάμε τα IDs των ραντεβού (apno)
         self.loaded_appointments = []
 
-        # --- Σχόλια ---
-        ttk.Label(self.tab_book, text="4. Σχόλια (Προαιρετικό):").pack(pady=5)
+        # Σχόλια
+        ttk.Label(self.tab_book, text="4. Comment (Optional):").pack(pady=5)
         self.ent_comment = ttk.Entry(self.tab_book, width=40)
         self.ent_comment.pack(pady=5)
 
-        # --- Κουμπί Κράτησης ---
-        self.btn_book = ttk.Button(self.tab_book, text="Κράτηση Ραντεβού", command=self.book_now, state="disabled")
+        # Κουμπί Κράτησης
+        self.btn_book = ttk.Button(self.tab_book, text="Book Now", command=self.book_now, state="disabled")
         self.btn_book.pack(pady=30)
 
         # Μήνυμα επιβεβαίωσης
@@ -128,7 +129,7 @@ class PatientWindow:
             if self.loaded_appointments:
                 self.btn_book.config(state="normal")
             else:
-                self.cb_date['values'] = ["Μη διαθέσιμο"]
+                self.cb_date['values'] = ["Not available"]
                 self.btn_book.config(state="disabled")
         else:
             self.cb_date['values'] = ["Μη διαθέσιμο"]
@@ -150,7 +151,7 @@ class PatientWindow:
         time = self.cb_time.get()
         
         if doc_idx == -1 or not date or not time:
-            messagebox.showerror("Error", "Παρακαλώ επιλέξτε όλα τα πεδία")
+            messagebox.showerror("Error", "Please select All Fields")
             return
 
         # Ανάκτηση δεδομένων από τις λίστες μας
@@ -162,7 +163,7 @@ class PatientWindow:
                 break
         
         if apno is None:
-            messagebox.showerror("Error", "Το ραντεβού δεν βρέθηκε.")
+            messagebox.showerror("Error", "The appointment could not be found.")
             return
 
         doc_id = self.loaded_doctors[doc_idx][0]
@@ -175,10 +176,10 @@ class PatientWindow:
         success = book_appointment(self.patient_id, doc_id, apno, comment)
         
         if success:
-            messagebox.showinfo("Επιτυχία", "Το ραντεβού έκλεισε επιτυχώς!")
-            self.lbl_status.config(text="Το ραντεβού κατοχυρώθηκε!", foreground="green")
+            messagebox.showinfo("Success", "Your appointment was successfully booked!")
+            self.lbl_status.config(text="The appointment is confirmed!", foreground="green")
             
-            # --- MQTT: Notify Doctor ---
+            #mqtt για ενημέρωση του γιατρού
             try:
                 client = mqtt.Client()
                 client.connect("broker.emqx.io", 1883, 60)
@@ -186,27 +187,26 @@ class PatientWindow:
                 client.disconnect()
             except Exception as e:
                 print(f"MQTT Publish Error: {e}")
-
             # Ανανέωση της λίστας (αφού το ραντεβού δεν είναι πια διαθέσιμο)
             self.on_doctor_select(None)
         else:
-            messagebox.showerror("Σφάλμα", "Κάτι πήγε στραβά. Προσπαθήστε ξανά.")
+            messagebox.showerror("Error", "Something went wrong. Please try again.")
 
     def setup_my_appointments_tab(self):
         """Στήσιμο του Tab για τα ραντεβού του ασθενή"""
-        ttk.Label(self.tab_my_apps, text="Τα Ραντεβού μου", font=("Verdana", 16, "bold")).pack(pady=20)
+        ttk.Label(self.tab_my_apps, text="My appointments", font=("Verdana", 16, "bold")).pack(pady=20)
 
         # Treeview
         columns = ("Date", "Time", "Doctor", "ID", "DocID")
         self.tree_apps = ttk.Treeview(self.tab_my_apps, columns=columns, show='headings', height=10)
-        self.tree_apps.heading("Date", text="Ημερομηνία")
-        self.tree_apps.heading("Time", text="Ώρα")
-        self.tree_apps.heading("Doctor", text="Γιατρός")
+        self.tree_apps.heading("Date", text="Date")
+        self.tree_apps.heading("Time", text="Time")
+        self.tree_apps.heading("Doctor", text="Doctor")
         self.tree_apps.column("ID", width=0, stretch=False) # Κρύβουμε το ID
-        self.tree_apps.column("DocID", width=0, stretch=False) # Κρύβουμε το DocID
+        self.tree_apps.column("DocID", width=0, stretch=False)
         self.tree_apps.pack(fill='both', expand=True, padx=10, pady=5)
 
-        btn_cancel = ttk.Button(self.tab_my_apps, text="Ακύρωση Επιλεγμένου", command=self.cancel_selected)
+        btn_cancel = ttk.Button(self.tab_my_apps, text="Cancel chosen appointment", command=self.cancel_selected)
         btn_cancel.pack(pady=10)
 
     def refresh_my_appointments(self):
@@ -216,25 +216,24 @@ class PatientWindow:
         
         apps = show_patient_appointments(self.patient_id)
         for app in apps:
-            # app: (date, time, fname, lname, apno, docid)
-            doc_name = f"{app[2]} {app[3]}"
-            self.tree_apps.insert("", "end", values=(app[0], app[1], doc_name, app[4], app[5]))
+            # app: (date, time, fname, lname, office, apno, docid)
+            doc_name = f"{app[2]} {app[3]} (Office: {app[4]})"
+            self.tree_apps.insert("", "end", values=(app[0], app[1], doc_name, app[5], app[6]))
 
     def cancel_selected(self):
         selected = self.tree_apps.selection()
         if not selected:
-            messagebox.showwarning("Προσοχή", "Παρακαλώ επιλέξτε ένα ραντεβού για ακύρωση.")
+            messagebox.showwarning("Warning", "Please select an appointment to cancel.")
             return
         
         item = self.tree_apps.item(selected)
         apno = item['values'][3] # Το ID είναι στην 4η στήλη
         doc_id = item['values'][4]
-
-        if messagebox.askyesno("Επιβεβαίωση", "Είστε σίγουροι ότι θέλετε να ακυρώσετε το ραντεβού;"):
+        if messagebox.askyesno("Confirmation", "Are you sure you want to cancel the appointment?"):
             if cancel_appointment(apno):
-                messagebox.showinfo("Επιτυχία", "Το ραντεβού ακυρώθηκε.")
-                
-                # --- MQTT: Notify Doctor ---
+                messagebox.showinfo("Success", "Your appointment has been canceled.")
+
+                #mqtt για ενημέρωση του γιατρού
                 try:
                     client = mqtt.Client()
                     client.connect("broker.emqx.io", 1883, 60)
@@ -242,7 +241,6 @@ class PatientWindow:
                     client.disconnect()
                 except Exception as e:
                     print(f"MQTT Publish Error: {e}")
-
                 self.refresh_my_appointments()
 
     def on_tab_change(self, event):

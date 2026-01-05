@@ -5,6 +5,7 @@ from connect_functions import (
     handle_patient_click, handle_doctor_click, attempt_login, 
     show_signup, back_to_home, submit_signup, back_to_login
 )
+import paho.mqtt.client as mqtt
 
 
 
@@ -13,9 +14,9 @@ def main_window():
     root.title("Clinic App")
     root.geometry("800x600")
     
-    # Clinic theme colors
-    bg_color = "#E6F2FF"  # Light blue background
-    text_color = "#004080" # Dark blue text
+    #Χρώματα
+    bg_color = "#E6F2FF"  #backgound
+    text_color = "#004080" 
 
     root.configure(bg=bg_color)
     style = ttk.Style()
@@ -34,10 +35,10 @@ def main_window():
     patient_frame=ttk.Frame(container)
     login_frame = ttk.Frame(container)
     
-    # Variable to store the logged-in user's ID
+    # Μεταβλητή για το ID του χρήστη
     current_user_id_var = tk.StringVar()
     
-    # Variables for dynamic text
+    # #Μεταβλητές για να αλλάζει το text ανάλογα με τον χρήστη
     login_title_var = tk.StringVar(value="Login")
     login_prompt_var = tk.StringVar(value="Enter ID:")
     signup_title_var = tk.StringVar(value="Registration")
@@ -47,21 +48,19 @@ def main_window():
         f.grid(row=0, column=0, sticky="nsew")
 
     # Welcome Label
-    welcome_label = ttk.Label(home_frame, text="Καλώς ήρθατε στη κλινική μας", font=("Verdana", 28, "bold"), foreground=text_color, background=bg_color)
+    welcome_label = ttk.Label(home_frame, text="Welcome to the Clinic", font=("Verdana", 28, "bold"), foreground=text_color, background=bg_color)
     welcome_label.pack(side="top", pady=50)
 
-    # Frame for buttons to center them
     button_frame = ttk.Frame(home_frame)
     button_frame.pack(expand=True)
 
-    # Buttons
-    patient_btn = ttk.Button(button_frame, text="Είσοδος ως ασθενής", command=lambda: handle_patient_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, btn_signup_nav, btn_back))
+    patient_btn = ttk.Button(button_frame, text="Entry for patients", command=lambda: handle_patient_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, btn_signup_nav, btn_back))
     patient_btn.pack(pady=10, ipadx=10, ipady=5)
 
-    doctor_btn = ttk.Button(button_frame, text="Είσοδος ως ιατρός", command=lambda: handle_doctor_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, btn_signup_nav))
+    doctor_btn = ttk.Button(button_frame, text="Entry for doctors", command=lambda: handle_doctor_click(login_title_var, login_prompt_var, signup_title_var, id_label_var, login_frame, btn_signup_nav))
     doctor_btn.pack(pady=10, ipadx=10, ipady=5)
 
-    # --- Doctor Frame Content ---
+    #Doctor Frame
     lbl_doc_title = ttk.Label(login_frame, textvariable=login_title_var, font=("Verdana", 24, "bold"), foreground=text_color, background=bg_color)
     lbl_doc_title.pack(pady=40)
 
@@ -73,7 +72,7 @@ def main_window():
 
     lbl_message = ttk.Label(login_frame, text="", font=("Verdana", 12), background=bg_color)
     lbl_message.pack(pady=5)
-    #patient frame:
+    #Patient frame:
     
 
     btn_login = ttk.Button(login_frame, text="Login", command=lambda: attempt_login(entry_id, lbl_message, login_title_var, current_user_id_var))
@@ -87,7 +86,7 @@ def main_window():
     btn_back = ttk.Button(login_frame, text="Back", command=lambda: back_to_home(home_frame))
     btn_back.pack(pady=20)
 
-    # --- Signup Frame Content ---
+    #Signup Frame
     lbl_signup = ttk.Label(signup_frame, textvariable=signup_title_var, font=("Verdana", 20, "bold"), foreground=text_color, background=bg_color)
     lbl_signup.pack(pady=20)
     
@@ -95,10 +94,7 @@ def main_window():
 
     form_frame = ttk.Frame(signup_frame)
     form_frame.pack(pady=10)
-
     entries = {}
-    
-    # Dynamic ID field
     row = ttk.Frame(form_frame)
     row.pack(fill="x", pady=5)
     ttk.Label(row, textvariable=id_label_var, width=15, anchor="w", background=bg_color).pack(side="left")
@@ -110,7 +106,7 @@ def main_window():
         "AMKA": "(10-digit)",
         "Address": "(City, Street+Number, e.g. Athens, Akropolis 40)",
         "Sex": "(F - for female and M - for male)",
-        "Phone": "(e.g. 0306900000000)",
+        "Phone": "(e.g. +306900000000)",
         "Allergies": "(e.g. Penicillin)"
     }
 
@@ -124,7 +120,7 @@ def main_window():
         if field in field_hints:
             ttk.Label(row, text=field_hints[field], font=("Verdana", 8), foreground="#555555", background=bg_color).pack(side="left", padx=5)
 
-    # Birth Date Selection
+    # Για την ημερομηνία γέννησης
     row = ttk.Frame(form_frame)
     row.pack(fill="x", pady=5)
     ttk.Label(row, text="Birth Date", width=15, anchor="w", background=bg_color).pack(side="left")
@@ -148,7 +144,7 @@ def main_window():
     cb_year.pack(side="left")
     entries["Birth_Year"] = cb_year
 
-    for field in ["Sex", "Allergies"]:
+    for field in ["Sex"]:
         row = ttk.Frame(form_frame)
         row.pack(fill="x", pady=5)
         ttk.Label(row, text=field, width=15, anchor="w", background=bg_color).pack(side="left")
@@ -158,6 +154,25 @@ def main_window():
         if field in field_hints:
             ttk.Label(row, text=field_hints[field], font=("Verdana", 8), foreground="#555555", background=bg_color).pack(side="left", padx=5)
 
+    # Για τις αλλεργίες
+    row = ttk.Frame(form_frame)
+    row.pack(fill="x", pady=5)
+    ttk.Label(row, text="Tick the box if you have Allergies?", anchor="w", background=bg_color).pack(side="left")
+    
+    has_allergies = tk.BooleanVar()
+    ent_allergies = ttk.Entry(row, width=30)
+    entries["Allergies"] = ent_allergies
+    
+    def toggle_allergies():
+        if has_allergies.get():
+            ent_allergies.pack(side="left", padx=5)
+        else:
+            ent_allergies.delete(0, tk.END)
+            ent_allergies.pack_forget()
+
+    chk_allergies = ttk.Checkbutton(row, text="Yes", variable=has_allergies, command=toggle_allergies)
+    chk_allergies.pack(side="left")
+
     lbl_res = ttk.Label(signup_frame, text="", font=("Verdana", 10), background=bg_color)
     lbl_res.pack(pady=5)
 
@@ -165,7 +180,7 @@ def main_window():
     
     ttk.Button(signup_frame, text="Back to Login", command=lambda: back_to_login(lbl_res, login_frame)).pack(pady=5)
 
-    # Show home frame initially
+    
     home_frame.tkraise()
 
     root.mainloop()

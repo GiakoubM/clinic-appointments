@@ -12,6 +12,8 @@ DB_PATH = Path(__file__).parent / DB_NAME
 def create_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    cursor.execute("BEGIN TRANSACTION;")
 
     # Ενεργοποίηση foreign keys
     cursor.execute("PRAGMA foreign_keys = ON;")
@@ -40,7 +42,7 @@ def create_db():
 	    "lastname"	TEXT NOT NULL,
 	    "address"	TEXT NOT NULL,
 	    "phone"	INTEGER NOT NULL,
-	    "email"	TEXT NOT NULL,
+	    "email"	TEXT NOT NULL UNIQUE,
 	    PRIMARY KEY("id")
     );
 
@@ -97,31 +99,32 @@ def create_db():
 	    "docid"	INTEGER NOT NULL,
 	    "patid"	INTEGER NOT NULL,
 	    "reason"	TEXT,
-	    PRIMARY KEY("apno"),
-	    FOREIGN KEY("apno") REFERENCES "APPOINTMENT"("apno") ON DELETE CASCADE,
-	    FOREIGN KEY("docid") REFERENCES "DOCTOR"("docid"),
-	    FOREIGN KEY("patid") REFERENCES "PATIENT"("patid")
+	    PRIMARY KEY("docid","patid","apno"),
+	    FOREIGN KEY("apno") REFERENCES "APPOINTMENT"("apno") ON UPDATE CASCADE ON DELETE CASCADE,
+	    FOREIGN KEY("docid") REFERENCES "DOCTOR"("docid") ON UPDATE CASCADE ON DELETE CASCADE,
+	    FOREIGN KEY("patid") REFERENCES "PATIENT"("patid") ON UPDATE CASCADE ON DELETE CASCADE
     );
 
     CREATE TABLE BILL (
-        billid INTEGER PRIMARY KEY AUTOINCREMENT,
-        apno INTEGER NOT NULL UNIQUE,
-        patid INTEGER NOT NULL,
-        payment_meth TEXT NOT NULL,
-        payment INTEGER NOT NULL,
-        amount REAL,
-        FOREIGN KEY (apno) REFERENCES APPOINTMENT(apno) ON UPDATE CASCADE ON DELETE CASCADE,
-        FOREIGN KEY (patid) REFERENCES PATIENT(patid) ON UPDATE CASCADE ON DELETE CASCADE
+        "billid"	INTEGER NOT NULL UNIQUE,
+        "apno"	INTEGER NOT NULL UNIQUE,
+        "patid"	INTEGER NOT NULL,
+        "payment_meth"	TEXT NOT NULL,
+        "payment"	INTEGER NOT NULL,
+        "amount"	REAL,
+        PRIMARY KEY("billid" AUTOINCREMENT),
+        FOREIGN KEY("apno") REFERENCES "APPOINTMENT"("apno") ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY("patid") REFERENCES "PATIENT"("patid") ON UPDATE CASCADE ON DELETE CASCADE 
     );
 
     CREATE TABLE CANCELS (
-        docid INTEGER NOT NULL,
-        patid INTEGER NOT NULL,
-        apno INTEGER NOT NULL,
-        PRIMARY KEY (docid, patid, apno),
-        FOREIGN KEY (apno) REFERENCES APPOINTMENT(apno) ON UPDATE CASCADE ON DELETE CASCADE,
-        FOREIGN KEY (docid) REFERENCES DOCTOR(docid) ON UPDATE CASCADE ON DELETE CASCADE,
-        FOREIGN KEY (patid) REFERENCES PATIENT(patid) ON UPDATE CASCADE ON DELETE CASCADE
+        "docid"	INTEGER NOT NULL UNIQUE,
+        "patid"	INTEGER NOT NULL UNIQUE,
+        "apno"	INTEGER NOT NULL UNIQUE,
+        PRIMARY KEY("docid","patid","apno"),
+        FOREIGN KEY("apno") REFERENCES "APPOINTMENT"("apno") ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY("docid") REFERENCES "DOCTOR"("docid") ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY("patid") REFERENCES "PATIENT"("patid") ON UPDATE CASCADE ON DELETE CASCADE
     );
     """)
 

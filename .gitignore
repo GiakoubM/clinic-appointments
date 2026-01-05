@@ -1,8 +1,36 @@
-# Database
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+
+# =========================
+# Database (SQLite)
+# =========================
 *.db
 *.db-shm
 *.db-wal
-# Python
-__pycache__/
-*.pyc
-.venv/
+
+# =========================
+# IDE / Editor files
+# =========================
+.vscode/
+.idea/
+*.sqbpro
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs (if any)
+# =========================
+*.log

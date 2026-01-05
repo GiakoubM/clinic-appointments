@@ -1,26 +1,28 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from project_db import set_doctor_schedule, show_appointments, show_patient, add_bill, show_doctor_booked_appointments
+from project_db import set_doctor_schedule, show_appointments, show_patient, add_bill, show_doctor_booked_appointments, get_doctor_stats
 import paho.mqtt.client as mqtt
 
+
+#Δημιουργω το παραθυρο
 def create_doctor_dashboard(container, home_frame, current_user_id_var):
     frame = ttk.Frame(container)
     
-    # --- Header ---
+    # Τίτλος
     lbl_title = ttk.Label(frame, text="Doctor Dashboard", font=("Verdana", 20, "bold"))
     lbl_title.pack(pady=20)
 
-    # --- Schedule Section ---
-    schedule_frame = ttk.LabelFrame(frame, text="Set Weekly Schedule", padding=10)
+    # Πρόγραμμα
+    schedule_frame = ttk.LabelFrame(frame, text="Management Panel", padding=10)
     schedule_frame.pack(fill="x", padx=20, pady=10)
 
-    # Duration
+    # Επιλογή Διάρκειας ραντεβού
     ttk.Label(schedule_frame, text="Slot Duration (mins):").grid(row=0, column=0, padx=5)
     combo_duration = ttk.Combobox(schedule_frame, values=["15", "20", "30", "45", "60"], width=5)
     combo_duration.set("30")
     combo_duration.grid(row=0, column=1, padx=5)
 
-    # Days and Times
+    # Μέρες και Ώρες Ραντεβού
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     days_vars = {}
     time_entries = {}
@@ -45,6 +47,7 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
         time_entries[day] = (ent_start, ent_end)
 
     def save_schedule():
+        # Αποθήκευση προγράμματος στην βάση
         doc_id = current_user_id_var.get()
         try:
             duration = int(combo_duration.get())
@@ -65,12 +68,14 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
         else:
             messagebox.showerror("Error", "Failed to update schedule.")
 
-    ttk.Button(schedule_frame, text="Save Schedule", command=save_schedule).grid(row=8, column=1, columnspan=2, pady=10)
-    ttk.Button(schedule_frame, text="Show Schedule", command=lambda: refresh_appointments()).grid(row=8, column=3, columnspan=2, pady=10)
+    # κουμπιά
+    ttk.Button(schedule_frame, text="Save Schedule", command=save_schedule).grid(row=8, column=0, pady=10, padx=5)
+    
+    btn_show_schedule = ttk.Button(schedule_frame, text="Show Schedule")
+    btn_show_schedule.grid(row=9, column=0, padx=5, pady=10)
     
     def show_booked_details():
-        """Switches the Treeview to show booked appointments with patient details."""
-        # Change columns for this view
+        #Για τις λεπτομέρειες των ραντεβου
         tree["displaycolumns"] = "#all"
         tree["columns"] = ("Patient", "Comment", "Date", "Time", "Paid", "Method", "Amount", "ID")
         tree["displaycolumns"] = ("Patient", "Comment", "Date", "Time", "Paid", "Method", "Amount")
@@ -83,7 +88,7 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
         tree.heading("Method", text="Method")
         tree.heading("Amount", text="Amount")
         
-        # Clear existing items
+        
         for item in tree.get_children():
             tree.delete(item)
             
@@ -100,36 +105,69 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
             pay_amount = f"{amount}€" if amount else "-"
             tree.insert("", "end", values=(full_name, comment, date, time, paid_status, pay_method, pay_amount, apno))
 
-    ttk.Button(schedule_frame, text="Booked Details", command=show_booked_details).grid(row=8, column=5, columnspan=2, pady=10)
+    ttk.Button(schedule_frame, text="Booked Details", command=show_booked_details).grid(row=9, column=1, padx=5, pady=10)
 
-    # --- Appointments Section ---
-    app_frame = ttk.LabelFrame(frame, text="My Appointments", padding=10)
+    # Κουμπί στατηστικών
+    def show_stats_popup():
+        doc_id = current_user_id_var.get()
+        stats = get_doctor_stats(doc_id)
+        
+        # Αν υπάρξει λάθος και επιστρέψει κενό 
+        if not stats:
+             messagebox.showinfo("Info", "No data available yet.")
+             return
+
+        msg = f"--- Financial Overview ---\n\n"
+        msg += f"Total Appointments: {stats.get('total_appts', 0)}\n"
+        msg += f"Total Revenue: {stats.get('total_revenue', 0)} €\n\n"
+        msg += "Breakdown by Payment Method:\n"
+        
+        methods = stats.get('payment_methods', [])
+        if methods:
+            for method, count in methods:
+                msg += f"  • {method}: {count} appointments\n"
+        else:
+            msg += "  No payments recorded yet.\n"
+            
+        messagebox.showinfo("Doctor Statistics", msg)
+
+    ttk.Button(schedule_frame, text="Show Stats", command=show_stats_popup).grid(row=9, column=2, padx=5, pady=10)
+
+    # Λίστα ραντεβού
+    app_frame = ttk.LabelFrame(frame, text="Appointments View", padding=10)
     app_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-    # Added "ID" column and used displaycolumns to hide it
+    # Search Frame
+    search_frame = ttk.Frame(app_frame)
+    search_frame.pack(fill="x", pady=5)
+    ttk.Label(search_frame, text="Search Date:").pack(side="left")
+    ent_search_date = ttk.Entry(search_frame, width=15)
+    ent_search_date.pack(side="left", padx=5)
+    btn_search = ttk.Button(search_frame, text="Search")
+    btn_search.pack(side="left")
+    btn_clear = ttk.Button(search_frame, text="Clear")
+    btn_clear.pack(side="left", padx=5)
+
     tree = ttk.Treeview(app_frame, columns=("Date", "Time", "Status", "ID"), show="headings", height=8, displaycolumns=("Date", "Time", "Status"))
     tree.heading("Date", text="Date")
     tree.heading("Time", text="Time")
     tree.heading("Status", text="Status")
     tree.pack(fill="both", expand=True)
 
-    # Configure colors
+    # Χρώμα κοκκινο ή πράσινο για αν κλεισμένα ή ελεύθερα ραντεβού
     tree.tag_configure("free", foreground="green")
     tree.tag_configure("booked", foreground="red")
 
+    # Εμφάνιση  λεπτομερειών των ραντεβού με διπλό κλίκ
     def on_appointment_double_click(event):
         selected_item = tree.selection()
         if not selected_item:
             return
         
-        # If we are in the standard "Show Schedule" view (Status column exists), DO NOT show popup
-        if "Status" in tree.cget("columns"):
-            return
-        
-        # We are in "Booked Details" view
+        # Λεπτομέρειες ραντεβου
         item = tree.item(selected_item)
         values = item['values']
-        apno = values[7] # ID is at index 7 in Booked Details view
+        apno = values[7] 
         
         paid_status = values[4]
         pay_method = values[5]
@@ -137,34 +175,29 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
 
         patient_data = show_patient(apno)
         if patient_data:
-            # Unpack the first result: (firstname, lastname, patid, sex, allergies, birth_date, reason)
             p = patient_data[0]
             patid = p[2]
             
-            # Create a popup window for details and payment
+            # Παράθυρο για πληρωμή
             top = tk.Toplevel(frame)
-            top.title("Appointment Details")
-            top.geometry("400x450")
+            top.title("Appointment Details & Payment")
+            top.geometry("400x500")
             
             reason = p[6] if len(p) > 6 and p[6] else "-"
-            info = f"Name: {p[0]} {p[1]}\nAMKA: {p[2]}\nSex: {p[3]}\nAllergie: {p[4]}\nBirth Date: {p[5]}\nReason: {reason}"
+            info = f"Name: {p[0]} {p[1]}\nAMKA: {p[2]}\nSex: {p[3]}\nAllergies: {p[4]}\nBirth Date: {p[5]}\nReason: {reason}"
             
             ttk.Label(top, text="Patient Information", font=("Verdana", 12, "bold")).pack(pady=10)
             ttk.Label(top, text=info, justify="left").pack(pady=5, padx=10)
             
             ttk.Separator(top, orient='horizontal').pack(fill='x', pady=10)
             
-            # Payment Section
-            ttk.Label(top, text="Payment", font=("Verdana", 12, "bold")).pack(pady=5)
-            
-            # Show current payment status
+            ttk.Label(top, text="Payment Processing", font=("Verdana", 12, "bold")).pack(pady=5)
             status_text = f"Current Status: {paid_status}"
             if paid_status == "Paid":
                 status_text += f" ({pay_method}, {pay_amount})"
             
             lbl_color = "green" if paid_status == "Paid" else "red"
             ttk.Label(top, text=status_text, foreground=lbl_color, font=("Verdana", 10)).pack(pady=2)
-            
             pay_frame = ttk.Frame(top)
             pay_frame.pack(pady=5)
             
@@ -195,8 +228,8 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
 
     tree.bind("<Double-1>", on_appointment_double_click)
 
+    #Επαναφέρει την προβολή στο γενικό πρόγραμμα
     def refresh_appointments():
-        # Restore columns for the standard schedule view
         tree["displaycolumns"] = "#all"
         tree["columns"] = ("Date", "Time", "Status", "ID")
         tree["displaycolumns"] = ("Date", "Time", "Status")
@@ -208,16 +241,24 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
             tree.delete(item)
         
         doc_id = current_user_id_var.get()
-        apps = show_appointments(doc_id, only_free=False)
+        date_filter = ent_search_date.get().strip()
+        apps = show_appointments(doc_id, only_free=False, date_filter=date_filter if date_filter else None)
         for date, time, avail, apno in apps:
             status = "Free" if avail == 1 else "Booked"
             tag = "free" if avail == 1 else "booked"
             tree.insert("", "end", values=(date, time, status, apno), tags=(tag,))
+            
+    btn_show_schedule.config(command=refresh_appointments)
+    btn_search.config(command=refresh_appointments)
+    
+    def clear_view():
+        ent_search_date.delete(0, tk.END)
+        for item in tree.get_children():
+            tree.delete(item)
+    btn_clear.config(command=clear_view)
 
-    ttk.Button(app_frame, text="Refresh Appointments", command=refresh_appointments).pack(pady=5)
+    ttk.Button(app_frame, text="Refresh View", command=refresh_appointments).pack(pady=5)
     ttk.Button(frame, text="Logout", command=lambda: home_frame.tkraise()).pack(pady=10)
-
-    # --- MQTT Listener Setup ---
     def start_mqtt():
         doc_id = current_user_id_var.get()
         broker = "broker.emqx.io"
@@ -229,7 +270,6 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
                 print(f"MQTT: Connected and subscribed to {topic}")
 
         def on_message(client, userdata, msg):
-            # Use after() to schedule the UI update on the main Tkinter thread
             frame.after(0, refresh_appointments)
 
         client = mqtt.Client()
@@ -240,7 +280,7 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
             client.connect(broker, 1883, 60)
             client.loop_start()
             
-            # Bind cleanup to frame destruction to stop the loop when logging out/closing
+            # Κόβει την σύνδεση όταν γίνει Logout ή κλείσει η εφαρμογή
             def cleanup(event):
                 client.loop_stop()
                 client.disconnect()
@@ -249,7 +289,6 @@ def create_doctor_dashboard(container, home_frame, current_user_id_var):
         except Exception as e:
             print(f"MQTT Connection Error: {e}")
 
-    # Start the listener
     start_mqtt()
 
     return frame
