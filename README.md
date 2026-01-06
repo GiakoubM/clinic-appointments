@@ -73,11 +73,20 @@ python connect_window.py
 ![Doctor Dashboard](screenshots/doctor_booked_appointments.png)
 ### Doctor Appointments Details
 ![Doctor Dashboard](screenshots/appointment_details.png)
+### Doctor Schedule And Search fo Appointments
+![Doctor Dashboard](screenshots/doc_schedule.png)
+![Doctor Dashboard](screenshots/doc_search.png)
+### Doctor Statistics and Payment Details
+![Doctor Dashboard](screenshots/statistics.png)
+![Doctor Dashboard](screenshots/unpaid.png) 
+![Doctor Dashboard](screenshots/paid.png)
 
 ### Patient Book Appointment Window
-![Patient Window](screenshots/patinet_book_appointment.png)
+![Patient Window](screenshots/patient_book_appointment.png)
+![Patient Window](screenshots/patient_book_appointment2.png)
 ### Patient Cancel Appointment Window
 ![Patient Window](screenshots/patient_cancel_appointment.png)
+
 
 
 
