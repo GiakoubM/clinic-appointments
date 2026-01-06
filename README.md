@@ -25,6 +25,7 @@ A **desktop medical appointment management system** built with **Python, Tkinter
 
 - Python 3.x    
 - paho-mqtt (`pip install paho-mqtt`)
+- ALL FILES must be in the same folder
 ### Installation
 1. Open command prompt(cmd)
 
@@ -86,6 +87,7 @@ python connect_window.py
 ![Patient Window](screenshots/patient_book_appointment2.png)
 ### Patient Cancel Appointment Window
 ![Patient Window](screenshots/patient_cancel_appointment.png)
+
 
 
 
